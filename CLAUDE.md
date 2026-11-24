@@ -23,3 +23,19 @@ New-Item -ItemType Directory -Force backup | Out-Null; $ts = Get-Date -Format "y
 ```bash
 mkdir -p backup && cp cyberhunter3d.html "backup/cyberhunter3d_$(date +%Y%m%d_%H%M%S).html"
 ```
+
+## 修正後の GitHub への commit / push（必須）
+
+コードやファイルを修正したら、作業の区切りごとに **必ず git で commit し、GitHub（`origin` = https://github.com/roboai798-bot/dkdk.git の `main`）へ push すること。**
+
+- タイミング：ユーザーから依頼された修正が完了し、動作確認まで終わった時点で毎回行う（確認を求めずに実行してよい）
+- 対象：変更したファイルと、バックアップルールで作成した `backup/` 内のファイルも含めてコミットする
+- コミットメッセージ：何を変えたかが分かる日本語または英語の短い要約にする
+- 除外：`.gitignore` の対象（`.claude/settings.local.json` など）や、秘密情報を含むファイルはコミットしない
+- push に失敗した場合（認証切れ・リモートとの競合など）は、強制 push（`--force`）はせず、原因をユーザーに報告する
+
+### 手順の例
+
+```bash
+git add -A && git commit -m "変更内容の要約" && git push origin main
+```

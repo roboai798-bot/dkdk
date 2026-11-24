@@ -126,7 +126,7 @@ body.touch #hint{display:none!important}
 <div id="mapWrap"><div class="t">STAGE MAP ─ 鉄骨ジャングル</div><canvas id="minimap" width="210" height="190"></canvas></div>
 <div id="ret"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><b></b></div>
 <div id="prompt"></div>
-<div id="hint">画面クリックでマウス視点ON（Escで解除）</div>
+<div id="hint">←→：向きを変える　↑↓ / W S：前進・後退　Space：ジャンプ　クリック：ハンマー</div>
 <div id="msg"></div>
 <div id="sub"></div>
 <div id="flash"></div>
@@ -143,8 +143,8 @@ body.touch #hint{display:none!important}
   <h1>IRON <span>APE</span></h1>
   <div class="sub">STAGE 1 : 夕暮れの鉄骨ジャングル ─ 頂上のゴリラメカを倒せ！</div>
   <div class="keys">
-    <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>移動（視点の向き基準）</div>
-    <div><kbd>マウス</kbd> <kbd>Q</kbd><kbd>E</kbd><kbd>R</kbd><kbd>F</kbd></div><div>視点操作（キーでも旋回・上下）</div>
+    <div><kbd>W</kbd><kbd>S</kbd> / <kbd>↑</kbd><kbd>↓</kbd></div><div>前進・後退（向いている方向へ）</div>
+    <div><kbd>←</kbd><kbd>→</kbd> / <kbd>Q</kbd><kbd>E</kbd></div><div>その場で向きを変える（旋回）　<kbd>R</kbd><kbd>F</kbd>：上下を見る</div>
     <div><kbd>Space</kbd><kbd>K</kbd></div><div>ジャンプ（タルを飛び越えるとスコア）</div>
     <div><kbd>W</kbd><kbd>↑</kbd> / <kbd>S</kbd><kbd>↓</kbd></div><div>ハシゴに向かって押すと登る ／ 上で <kbd>S</kbd> で降りる（<kbd>Space</kbd>でも登る）</div>
     <div><kbd>A</kbd><kbd>D</kbd>（ハシゴ中）</div><div>左右へ降りる（足場の近くなら乗り移り、途中なら飛び降り）</div>
@@ -152,8 +152,8 @@ body.touch #hint{display:none!important}
     <div><kbd>V</kbd> / <kbd>M</kbd> / <kbd>T</kbd></div><div>視点リセット ／ BGM ON・OFF ／ タッチ操作UIの表示切替</div>
   </div>
   <div class="touchHelp">
-    <b>左下パッド</b>：▲▼で前進・後退（視点の向き基準）／ハシゴでは▲登る・▼降りる・◀▶で左右へ降りる<br>
-    <b>画面右側をドラッグ</b>：視点を回す　<b>JUMP</b>：ジャンプ（ハシゴでは登る）　<b>🔨</b>：ハンマー振り<br>
+    <b>左下パッド</b>：▲▼で前進・後退（向いている方向へ）／◀▶でその場で向きを変える<br>
+    <b>ハシゴ中</b>：▲登る・▼降りる・◀▶で左右へ降りる　<b>JUMP</b>：ジャンプ（ハシゴでは登る）　<b>🔨</b>：ハンマー振り<br>
     <b>視点</b>：視点リセット　<b>♪</b>：BGM ON/OFF　<b>全画面</b>：フルスクリーン（横画面推奨）
   </div>
   <p class="tip">★転がるタルをジャンプで越えろ！ 青いタルはハンマーで壊すとボーナスアイテム<br>★ハンマー中はハシゴを登れない ／ 炎・スパークはダメージ ／ 足場の隙間から落ちると下の階へ<br>★STAGE1：ゴリラメカをハンマーで倒す or 頂上のゴールへ ／ STAGE2：リベット8本を踏んで外せ！（コンベア・エレベーター・ボルト落下に注意）<br>★オイルドラムに落ちたタルからは火の玉が生まれる ／ 緑のクレイジー樽はジグザグに落ちてくる ／ 20000点で1UP</p>
@@ -1190,7 +1190,7 @@ function updateBoss(dt){
 // ================= 入力 =================
 const keys={},kbKeys={},tKeys={};
 function syncKey(k){keys[k]=!!(kbKeys[k]||tKeys[k]);}
-const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',Space:'jump',KeyK:'jump',KeyJ:'fire',KeyZ:'fire',KeyR:'lookUp',PageUp:'lookUp',KeyF:'lookDown',PageDown:'lookDown',KeyQ:'turnL',KeyE:'turnR'};
+const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'turnL',KeyD:'right',ArrowRight:'turnR',Space:'jump',KeyK:'jump',KeyJ:'fire',KeyZ:'fire',KeyR:'lookUp',PageUp:'lookUp',KeyF:'lookDown',PageDown:'lookDown',KeyQ:'turnL',KeyE:'turnR'};
 addEventListener('keydown',e=>{
   const k=KEYMAP[e.code];
   if(!touchForced&&e.code!=='KeyT')setTouchMode(false);
@@ -1202,28 +1202,21 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{const k=KEYMAP[e.code];if(k){kbKeys[k]=false;syncKey(k);}});
 addEventListener('blur',()=>{for(const k in keys){keys[k]=kbKeys[k]=false;}mouseL=false;touchReset();});
-function tryLock(){if(touchMode)return;try{if(document.pointerLockElement!==canvas&&canvas.requestPointerLock){const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}}catch(e){}}
-let dragging=false;
+// PC版はマウス移動での視点操作なし（←→キー / Q・E で旋回）。左クリックはハンマー振り
+function tryLock(){}
 canvas.addEventListener('mousedown',e=>{
   if(!touchForced)setTouchMode(false);
   initAudio();
-  if(e.button===0){mouseL=true;fireTap=true;dragging=true;}
-  if(state==='play')tryLock();
+  if(e.button===0){mouseL=true;fireTap=true;}
 });
-addEventListener('mouseup',e=>{if(e.button===0){mouseL=false;dragging=false;}});
+addEventListener('mouseup',e=>{if(e.button===0)mouseL=false;});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-document.addEventListener('pointerlockchange',()=>{hintEl.style.display=document.pointerLockElement===canvas?'none':'block';});
-addEventListener('mousemove',e=>{
-  if((document.pointerLockElement===canvas||dragging)&&state==='play'){
-    pitch=clamp(pitch-e.movementY*0.0022,-1.35,1.35);
-    yaw-=e.movementX*0.0022;
-  }
-});
 let clearNext=false;
 
 // ================= タッチ操作（スマホ・タブレット） =================
 // ・左下パッド：仮想 W/A/S/D（▲▼=fwd/back、◀▶=left/right）。キーボードと同じキー状態を使うのでゲーム側の処理は共通
-// ・右下ボタン：JUMP / ハンマー　・それ以外のキャンバス上のドラッグ：視点回転
+// ・パッド◀▶：その場で旋回（PCの←→と同じ）。ハシゴ中だけ左右へ降りる（PCのA/D）
+// ・右下ボタン：JUMP / ハンマー　・画面ドラッグでの視点操作はなし
 // ・各指は identifier で個別追跡するので「移動しながらジャンプ」「視点を回しながら攻撃」が同時にできる
 // ・touchstart で preventDefault するので互換マウスイベント（mousedown/click）は発生せず二重発火しない
 const touchUI=$('touchUI'),tzMove=$('tzMove'),padBase=$('padBase'),padKnob=$('padKnob');
@@ -1238,8 +1231,8 @@ function setTouchMode(on){
 function layoutTouch(){if(!touchMode)return;const b=$('mapWrap').getBoundingClientRect();for(const id of ['tbView','tbBgm','tbFull'])$(id).style.top=Math.round(b.bottom+8)+'px';}
 addEventListener('resize',()=>requestAnimationFrame(layoutTouch));
 function setTK(k,v){if(!!tKeys[k]!==v){tKeys[k]=v;syncKey(k);if(padArrows[k])padArrows[k].classList.toggle('on',v);}}
-const PAD_R=50,TOUCH_LOOK=0.0058;
-let padId=null,padCx=0,padCy=0,lookId=null,lookX=0,lookY=0;
+const PAD_R=50;
+let padId=null,padCx=0,padCy=0,padHS=0,padHL=0,padTurnBlock=false;
 const btnIds=new Map();
 function padHome(){padBase.style.left=padBase.style.top=padBase.style.bottom='';padBase.classList.remove('act');padKnob.style.transform='';}
 function padMove(x,y){
@@ -1248,11 +1241,23 @@ function padMove(x,y){
   const ax=nx/PAD_R,ay=ny/PAD_R,aax=Math.abs(ax),aay=Math.abs(ay);
   // 縦（前進・ハシゴ昇降）を優先。横はしっかり倒したときだけ（ハシゴ登り中の誤降り防止）
   setTK('fwd',ay<-0.32&&aay>aax*0.55);setTK('back',ay>0.32&&aay>aax*0.55);
-  setTK('left',ax<-0.55&&aax>aay*1.1);setTK('right',ax>0.55&&aax>aay*1.1);
+  // 横：ハシゴ降り用は「しっかり横」だけ（誤降り防止）、旋回用は斜めでも効く（前進しながら旋回できる）
+  padHS=ax<-0.55&&aax>aay*1.1?-1:ax>0.55&&aax>aay*1.1?1:0;
+  padHL=ax<-0.4?-1:ax>0.4?1:0;
+  applyPadH();
+}
+// パッドの横入力を状況で振り分け（毎フレーム呼ぶので、横を倒したままハシゴをつかんだ／降りた場合も即切り替わる）
+function applyPadH(){
+  const onL=!!P.ladder;
+  // ◀▶でハシゴから降りた直後は、パッドを一度中央に戻すまで旋回しない（降りた瞬間にクルッと回るのを防ぐ）
+  if(onL&&padHS!==0)padTurnBlock=true;else if(padHL===0)padTurnBlock=false;
+  setTK('left',onL&&padHS<0);setTK('right',onL&&padHS>0);
+  setTK('turnL',!onL&&!padTurnBlock&&padHL<0);setTK('turnR',!onL&&!padTurnBlock&&padHL>0);
+  const h=onL?padHS:padHL;padArrows.left.classList.toggle('on',h<0);padArrows.right.classList.toggle('on',h>0);
 }
 function touchReset(){
   for(const k in tKeys)setTK(k,false);
-  padId=lookId=null;padHome();
+  padId=null;padHS=padHL=0;padTurnBlock=false;padHome();
   btnIds.forEach((ids,el)=>{ids.clear();el.classList.remove('on');});
 }
 function ownTouch(e){e.preventDefault();e.stopPropagation();setTouchMode(true);}
@@ -1265,20 +1270,11 @@ tzMove.addEventListener('touchstart',e=>{ownTouch(e);
   padMove(t.clientX,t.clientY);
 },{passive:false});
 tzMove.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===padId)padMove(t.clientX,t.clientY);},{passive:false});
-function padEnd(e){e.preventDefault();for(const t of e.changedTouches)if(t.identifier===padId){padId=null;for(const k of ['fwd','back','left','right'])setTK(k,false);padHome();}}
+function padEnd(e){e.preventDefault();for(const t of e.changedTouches)if(t.identifier===padId){padId=null;padHS=padHL=0;padTurnBlock=false;for(const k of ['fwd','back','left','right','turnL','turnR'])setTK(k,false);padHome();}}
 tzMove.addEventListener('touchend',padEnd,{passive:false});tzMove.addEventListener('touchcancel',padEnd,{passive:false});
-// --- 視点ドラッグ（キャンバス上のパッド・ボタン以外の場所） ---
-canvas.addEventListener('touchstart',e=>{ownTouch(e);
-  if(lookId!==null)return;const t=e.changedTouches[0];lookId=t.identifier;lookX=t.clientX;lookY=t.clientY;
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();
-  for(const t of e.changedTouches)if(t.identifier===lookId){
-    const dx=t.clientX-lookX,dy=t.clientY-lookY;lookX=t.clientX;lookY=t.clientY;
-    if(state==='play'){yaw-=dx*TOUCH_LOOK;pitch=clamp(pitch-dy*TOUCH_LOOK*0.85,-1.35,1.35);}
-  }
-},{passive:false});
-function lookEnd(e){e.preventDefault();for(const t of e.changedTouches)if(t.identifier===lookId)lookId=null;}
-canvas.addEventListener('touchend',lookEnd,{passive:false});canvas.addEventListener('touchcancel',lookEnd,{passive:false});
+// --- キャンバスへのタッチは何もしない（ズーム・スクロール・互換マウスイベントの抑止だけ） ---
+canvas.addEventListener('touchstart',ownTouch,{passive:false});
+for(const ev of ['touchmove','touchend','touchcancel'])canvas.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 // --- ボタン（押した指が全部離れるまで押下扱い） ---
 function bindTouchBtn(el,down,up){
   const ids=new Set();btnIds.set(el,ids);
@@ -1539,8 +1535,9 @@ function hazards(){
 const sparkCycle=s=>(T+s.ph)%3.2;
 const sparkOn=s=>sparkCycle(s)>2.0;
 function look(dt){
+  if(padId!==null)applyPadH();
   const d=(keys.lookUp?1:0)-(keys.lookDown?1:0);pitch=clamp(pitch+d*1.8*dt,-1.35,1.35);
-  const t=(keys.turnL?1:0)-(keys.turnR?1:0);yaw+=t*2.4*dt;
+  const t=(keys.turnL?1:0)-(keys.turnR?1:0);yaw+=t*2.8*dt;
 }
 
 // ================= イベント（チェックポイント・ボス登場・クリア） =================
