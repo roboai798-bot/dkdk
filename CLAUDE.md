@@ -2,26 +2,38 @@
 
 ## ファイル編集時のバックアップルール（必須）
 
-コードを修正・上書きする前は、**必ず `backup/` フォルダ内に日時付きで変更前のファイルをコピー保存してから編集すること。**
+ゲームHTMLファイルを修正・上書きする前は、**必ずタイトルごとのバックアップフォルダにコピーを保存し、バックアップ作成が完了してから本体を修正すること。**
 
-- 対象：既存ファイルを修正・上書き・置換するすべての操作（Edit／Write／スクリプトによる書き換えを含む）
-- 保存先：プロジェクト直下の `backup/` フォルダ（無ければ作成する）
-- ファイル名：`元のファイル名_YYYYMMDD_HHMMSS.拡張子`
-  - 例：`cyberhunter3d.html` → `backup/cyberhunter3d_20261123_193015.html`
+### 対象
+- このフォルダ内の既存ゲームHTMLファイル（`bomberman3d.html`、`cyberhunter3d.html`、`ironape3d.html`、`okuscroll3d.html` など）
+- **今後このフォルダに新規作成されるすべてのゲームHTMLファイル**（作成後に修正・上書きする時点から本ルールを適用する）
+- 修正・上書き・置換するすべての操作（Edit／Write／スクリプトによる書き換えを含む）
+- ゲーム以外の既存ファイル（`index.html`、`CLAUDE.md` など）を指示により修正する場合も同じ形式でバックアップを取る
+
+### 保存先とファイル名
+- 保存先：`backup/<拡張子を除いたファイル名>/`（タイトルごとにフォルダを分けて管理）
+  - 例：`bomberman3d.html` → `backup/bomberman3d/`、新作 `新作名.html` → `backup/新作名/`
+- フォルダが存在しない場合は自動で作成する
+- ファイル名：`元のファイル名_YYYYMMDD_HHMM.拡張子`
+  - 例：`bomberman3d.html` → `backup/bomberman3d/bomberman3d_20261124_2215.html`
+- 同じ分に複数回バックアップする場合は上書きせず、末尾に `_2` などを付けて別名で保存する
 - 1回の作業で同じファイルを何度も編集する場合は、最初の編集の直前に1回バックアップを取ればよい
-- 新規作成するファイル（既存ファイルが無い場合）はバックアップ不要
-- `backup/` 内のファイルは編集・削除しない
+- 新規作成するファイル（既存ファイルが無い場合）は作成時のバックアップ不要
+- `backup/` 内のファイルは編集・削除しない（過去に `backup/` 直下へ保存したファイルもそのまま残す）
+
+### 編集対象の制限
+- 修正対象として明示されたファイル以外の既存HTMLファイルや `index.html` は、明示的な指示がない限り**絶対に編集・上書き・削除しない**
 
 ### バックアップ手順の例（PowerShell）
 
 ```powershell
-New-Item -ItemType Directory -Force backup | Out-Null; $ts = Get-Date -Format "yyyyMMdd_HHmmss"; Copy-Item cyberhunter3d.html "backup/cyberhunter3d_$ts.html"
+$f = "bomberman3d.html"; $n = [IO.Path]::GetFileNameWithoutExtension($f); New-Item -ItemType Directory -Force "backup/$n" | Out-Null; $ts = Get-Date -Format "yyyyMMdd_HHmm"; Copy-Item $f "backup/$n/${n}_$ts.html"
 ```
 
 ### バックアップ手順の例（Bash）
 
 ```bash
-mkdir -p backup && cp cyberhunter3d.html "backup/cyberhunter3d_$(date +%Y%m%d_%H%M%S).html"
+f=bomberman3d.html; n="${f%.*}"; mkdir -p "backup/$n" && cp "$f" "backup/$n/${n}_$(date +%Y%m%d_%H%M).html"
 ```
 
 ## 修正後の GitHub への commit / push（必須）
