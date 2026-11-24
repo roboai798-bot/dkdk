@@ -152,7 +152,7 @@ body.touch #hint{display:none!important}
     <div><kbd>V</kbd> / <kbd>M</kbd> / <kbd>T</kbd></div><div>視点リセット ／ BGM ON・OFF ／ タッチ操作UIの表示切替</div>
   </div>
   <div class="touchHelp">
-    <b>左下パッド</b>：▲▼で前進・後退（向いている方向へ）／◀▶でその場で向きを変える<br>
+    <b>左下パッド</b>：▲▼で前進・後退（向いている方向へ）／◀▶でその場で向きを変える　<b>画面を上下にドラッグ</b>：上下を見る<br>
     <b>ハシゴ中</b>：▲登る・▼降りる・◀▶で左右へ降りる　<b>JUMP</b>：ジャンプ（ハシゴでは登る）　<b>🔨</b>：ハンマー振り<br>
     <b>視点</b>：視点リセット　<b>♪</b>：BGM ON/OFF　<b>全画面</b>：フルスクリーン（横画面推奨）
   </div>
@@ -1216,7 +1216,7 @@ let clearNext=false;
 // ================= タッチ操作（スマホ・タブレット） =================
 // ・左下パッド：仮想 W/A/S/D（▲▼=fwd/back、◀▶=left/right）。キーボードと同じキー状態を使うのでゲーム側の処理は共通
 // ・パッド◀▶：その場で旋回（PCの←→と同じ）。ハシゴ中だけ左右へ降りる（PCのA/D）
-// ・右下ボタン：JUMP / ハンマー　・画面ドラッグでの視点操作はなし
+// ・右下ボタン：JUMP / ハンマー　・画面ドラッグは上下の視点移動のみ（左右の向きはパッド◀▶）
 // ・各指は identifier で個別追跡するので「移動しながらジャンプ」「視点を回しながら攻撃」が同時にできる
 // ・touchstart で preventDefault するので互換マウスイベント（mousedown/click）は発生せず二重発火しない
 const touchUI=$('touchUI'),tzMove=$('tzMove'),padBase=$('padBase'),padKnob=$('padKnob');
@@ -1257,7 +1257,7 @@ function applyPadH(){
 }
 function touchReset(){
   for(const k in tKeys)setTK(k,false);
-  padId=null;padHS=padHL=0;padTurnBlock=false;padHome();
+  padId=null;lookId=null;padHS=padHL=0;padTurnBlock=false;padHome();
   btnIds.forEach((ids,el)=>{ids.clear();el.classList.remove('on');});
 }
 function ownTouch(e){e.preventDefault();e.stopPropagation();setTouchMode(true);}
@@ -1272,9 +1272,19 @@ tzMove.addEventListener('touchstart',e=>{ownTouch(e);
 tzMove.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===padId)padMove(t.clientX,t.clientY);},{passive:false});
 function padEnd(e){e.preventDefault();for(const t of e.changedTouches)if(t.identifier===padId){padId=null;padHS=padHL=0;padTurnBlock=false;for(const k of ['fwd','back','left','right','turnL','turnR'])setTK(k,false);padHome();}}
 tzMove.addEventListener('touchend',padEnd,{passive:false});tzMove.addEventListener('touchcancel',padEnd,{passive:false});
-// --- キャンバスへのタッチは何もしない（ズーム・スクロール・互換マウスイベントの抑止だけ） ---
-canvas.addEventListener('touchstart',ownTouch,{passive:false});
-for(const ev of ['touchmove','touchend','touchcancel'])canvas.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+// --- 画面ドラッグ：上下の視点移動だけ（横方向の動きは無視。向きはパッド◀▶で変える） ---
+const TOUCH_PITCH=0.005;let lookId=null,lookY=0;
+canvas.addEventListener('touchstart',e=>{ownTouch(e);
+  if(lookId!==null)return;const t=e.changedTouches[0];lookId=t.identifier;lookY=t.clientY;
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();
+  for(const t of e.changedTouches)if(t.identifier===lookId){
+    const dy=t.clientY-lookY;lookY=t.clientY;
+    if(state==='play')pitch=clamp(pitch-dy*TOUCH_PITCH,-1.35,1.35);
+  }
+},{passive:false});
+function lookEnd(e){e.preventDefault();for(const t of e.changedTouches)if(t.identifier===lookId)lookId=null;}
+canvas.addEventListener('touchend',lookEnd,{passive:false});canvas.addEventListener('touchcancel',lookEnd,{passive:false});
 // --- ボタン（押した指が全部離れるまで押下扱い） ---
 function bindTouchBtn(el,down,up){
   const ids=new Set();btnIds.set(el,ids);
